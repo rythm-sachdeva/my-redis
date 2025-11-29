@@ -9,7 +9,7 @@ pub struct Db{
 }
 
 impl Db {
-    pub fn new() ->Db{
+    pub fn new() -> Db{
         Db {
             shared : Arc::new(Mutex::new(HashMap::new()))
         }
@@ -17,12 +17,12 @@ impl Db {
 
     pub fn set(&self,key:String,bytes:Bytes) {
         let mut state = self.shared.lock().unwrap();
-        state.insert(key, value);
+        state.insert(key, bytes);
     }
 
     pub fn get(&self,key:String) -> Option<Bytes>{
        let state = self.shared.lock().unwrap();
-       state.get(key).cloned()
+       state.get(&key).cloned()
     }
 }
 
