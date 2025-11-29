@@ -6,7 +6,6 @@ use db::db::Db;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    // Added -> std::io::Result<()> to allow using '?'
     let listener = TcpListener::bind("127.0.0.1:6379").await?;
     println!("Server listening on port 6379");
 
@@ -36,9 +35,6 @@ async fn handle_connection(mut socket: TcpStream, db: Db) {
                 return;
             }
         };
-
-        // 2. Parse input
-        // FIX: Changed &buf to &buffer
         let input = String::from_utf8_lossy(&buffer[..n]);
         let frames = parse_resp(&input);
 
@@ -78,12 +74,9 @@ async fn handle_connection(mut socket: TcpStream, db: Db) {
                     let key = frames[1].to_string();
                     match db.get(key) {
                         Some(value) => {
-                            // Header
                             let header = format!("${}\r\n", value.len());
                             if let Err(_) = socket.write_all(header.as_bytes()).await { return; }
-                            // Body
                             if let Err(_) = socket.write_all(&value).await { return; }
-                            // Footer
                             if let Err(_) = socket.write_all(b"\r\n").await { return; }
                         }
                         None => {
@@ -94,7 +87,6 @@ async fn handle_connection(mut socket: TcpStream, db: Db) {
                 }
             }
             "COMMAND" | "DOCS" => {
-                // Clients often send these on startup; ignore them gracefully
                 let _ = socket.write_all(b"+OK\r\n").await;
             }
             _ => {
@@ -105,12 +97,10 @@ async fn handle_connection(mut socket: TcpStream, db: Db) {
     }
 }
 
-// FIX: Changed return type from Vector<String> to Vec<String>
 fn parse_resp(input: &str) -> Vec<String> {
     let mut lines = input.lines();
     let mut result = Vec::new();
 
-    // Check if it starts with array indicator
     if let Some(line) = lines.next() {
         if !line.starts_with('*') {
             return result;
@@ -119,7 +109,6 @@ fn parse_resp(input: &str) -> Vec<String> {
 
     while let Some(line) = lines.next() {
         if line.starts_with('$') {
-            // The next line contains the actual data
             if let Some(data) = lines.next() {
                 result.push(data.to_string());
             }
